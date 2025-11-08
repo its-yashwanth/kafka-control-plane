@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f4f4f9; margin: 0; padding: 20px; color: #333; }
+        h1 { text-align: center; color: #4a4a4a; }
+        /* --- UPDATED: 3-column grid --- */
+        .container { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; max-width: 1800px; margin: 0 auto; }
+        .card { background: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); padding: 20px; overflow-x: auto; }
+        h2 { border-bottom: 2px solid #eee; padding-bottom: 10px; color: #007bff; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; white-space: nowrap; }
+        th { background-color: #f8f8f8; }
+        td.message { white-space: normal; word-break: break-all; }
+        .pending-list { list-style: none; padding: 0; }
+        .pending-list li { display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px; }
+        .approve-btn { background-color: #28a745; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .approve-btn:hover { background-color: #218838; }
+        .reject-btn { background-color: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8em; }
+        .reject-btn:hover { background-color: #c82333; }
+        #last-updated { text-align: center; margin-top: 20px; color: #888; }
+    </style>
+</head>
+<body>
+    <h1>Admin & Monitoring Dashboard</h1>
+    <p id="last-updated">Loading...</p>
+
+    <div class="container">
+        
+        <div class="card">
+            <h2>Topic Management</h2>
+            <div id="pending-topics">
+                <h3>Pending Approval</h3>
+                <ul id="pending-list" class="pending-list"></ul>
+            </div>
+            <div id="all-topics">
+                <h3>All Topics Status</h3>
+                <table id="all-topics-table">
+                    <thead><tr><th>Topic Name</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div id="subscriptions">
+                <h3>User Subscriptions</h3>
+                <table id="subscriptions-table">
+                    <thead><tr><th>User</th><th>Subscribed Topic</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>Live Data Feed (Last 20)</h2>
+            <table id="live-data-table">
+                <thead><tr><th>Time</th><th>Topic</th><th>Message</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>Admin Logs (Last 20)</h2>
+            <table id="admin-logs-table">
+                <thead><tr><th>Time</th><th>Source</th><th>Message</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <script>
+        const API_URL = "/"; 
+
+        // --- DOM Elements ---
+        const pendingList = document.getElementById('pending-list');
+        const allTopicsTable = document.getElementById('all-topics-table').getElementsByTagName('tbody')[0];
+        const subscriptionsTable = document.getElementById('subscriptions-table').getElementsByTagName('tbody')[0];
+        // --- NEW DOM Elements ---
+        const liveDataTable = document.getElementById('live-data-table').getElementsByTagName('tbody')[0];
+        const adminLogsTable = document.getElementById('admin-logs-table').getElementsByTagName('tbody')[0];
+        
+        const lastUpdated = document.getElementById('last-updated');
+
+        // --- UPDATED: Data Fetching and Rendering ---
+        async function fetchData() {
+            try {
+                // Fetch all data in parallel
+                const [topicsRes, subsRes, logsRes, dataRes] = await Promise.all([
+                    fetch(API_URL + 'topics'),
+                    fetch(API_URL + 'subscriptions'),
+                    fetch(API_URL + 'logs'),
+                    fetch(API_URL + 'live-data')
+                ]);
+
+                if (!topicsRes.ok || !subsRes.ok || !logsRes.ok || !dataRes.ok) {
+                    // Check for 401 Unauthorized
+                    if ([topicsRes, subsRes, logsRes, dataRes].some(res => res.status === 401)) {
+                        alert("Authentication failed. Please log in again.");
+                        // Force a re-login
+                        window.location.reload(); 
+                    }
+                    throw new Error('Failed to fetch data from API');
+                }
+
+                const allTopics = await topicsRes.json();
+                const subscriptions = await subsRes.json();
+                const logs = await logsRes.json();
+                const liveData = await dataRes.json();
+
+                // Render all sections
+                renderPendingTopics(allTopics);
+                renderAllTopics(allTopics);
+                renderSubscriptions(subscriptions);
+                renderTable(adminLogsTable, logs, ['time', 'source', 'msg']);
+                renderTable(liveDataTable, liveData, ['time', 'topic', 'msg']);
+
+                lastUpdated.textContent = `Last Updated: ${new Date().toLocaleTimeString()}`;
+
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                lastUpdated.textContent = `Error loading data: ${error.message}`;
+            }
+        }
+
+        // --- NEW: Generic Table Renderer ---
+        function renderTable(tableBody, data, columns) {
+            tableBody.innerHTML = ''; // Clear old data
+            if (data.length === 0) {
+                const row = tableBody.insertRow();
+                const cell = row.insertCell(0);
+                cell.colSpan = columns.length;
+                cell.textContent = "No data available.";
+                cell.style.textAlign = "center";
+                return;
+            }
+            data.forEach(item => {
+                const row = tableBody.insertRow();
+                columns.forEach((col, index) => {
+                    let text = item[col] || '';
+                    if (col === 'time') {
+                        // Format timestamp
+                        text = new Date(text).toLocaleString();
+                    }
+                    const cell = row.insertCell(index);
+                    cell.textContent = text;
+                    if (col === 'msg') {
+                        // Allow messages to wrap
+                        cell.className = 'message';
+                    }
+                });
+            });
+        }
+        
+        // --- (Functions for rendering topics and subs are unchanged) ---
+        function renderPendingTopics(allTopics) {
+            pendingList.innerHTML = '';
+            const pending = allTopics.filter(t => t.status === 'pending');
+            if (pending.length === 0) pendingList.innerHTML = '<li>No topics awaiting approval.</li>';
+            pending.forEach(topic => {
+                const li = document.createElement('li');
+                li.innerHTML = `<span>${topic.name}</span><button class="approve-btn" data-topic="${topic.name}">Approve</button>`;
+                pendingList.appendChild(li);
+            });
+        }
+        function renderAllTopics(allTopics) {
+            allTopicsTable.innerHTML = ''; 
+            allTopics.forEach(topic => {
+                const row = allTopicsTable.insertRow();
+                row.insertCell(0).textContent = topic.name;
+                row.insertCell(1).textContent = topic.status;
+                const actionCell = row.insertCell(2);
+                if (topic.status === 'approved' || topic.status === 'active') {
+                    const rejectBtn = document.createElement('button');
+                    rejectBtn.className = 'reject-btn';
+                    rejectBtn.textContent = 'Reject/Delete';
+                    rejectBtn.dataset.topic = topic.name;
+                    actionCell.appendChild(rejectBtn);
+                } else if (topic.status === 'rejected') {
+                    actionCell.textContent = 'Deletion pending...';
+                }
+            });
+        }
+        function renderSubscriptions(subscriptions) {
+             renderTable(subscriptionsTable, subscriptions, ['user', 'topic']);
+        }
+
+        // --- (Event handlers are unchanged) ---
+        pendingList.addEventListener('click', async (event) => {
+            if (event.target.classList.contains('approve-btn')) {
+                const topicName = event.target.dataset.topic;
+                if (!confirm(`Approve "${topicName}"?`)) return;
+                try {
+                    await fetch(`${API_URL}topics/${topicName}/approve`, { method: 'POST' });
+                    fetchData();
+                } catch (error) { alert("Approval failed."); }
+            }
+        });
+        allTopicsTable.addEventListener('click', async (event) => {
+            if (event.target.classList.contains('reject-btn')) {
+                const topicName = event.target.dataset.topic;
+                if (!confirm(`REJECT and DELETE "${topicName}"?`)) return;
+                try {
+                    await fetch(`${API_URL}topics/${topicName}/reject`, { method: 'POST' });
+                    fetchData();
+                } catch (error) { alert("Rejection failed."); }
+            }
+        });
+
+        // --- Initial Load and Auto-Refresh ---
+        fetchData();
+        setInterval(fetchData, 5000);
+    </script>
+</body>
+</html>
