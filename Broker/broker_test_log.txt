@@ -1,0 +1,23 @@
+[INFO] Zookeeper started successfully.
+[INFO] Kafka Broker running on localhost:9092
+[INFO] Broker configuration loaded from config/server.properties
+[INFO] Zookeeper connection established on port 2181
+
+[INFO] Listing existing topics...
+[INFO] Existing Topics: ['__consumer_offsets']
+
+[INFO] Creating new topic: 'weather_data'
+[INFO] Topic 'weather_data' created successfully.
+
+[INFO] Listing topics again...
+[INFO] Active Topics: ['__consumer_offsets', 'weather_data']
+
+[INFO] Deleting topic: 'weather_data'
+[INFO] Topic 'weather_data' deleted successfully.
+
+[INFO] Verifying message flow between producer and consumer.
+[INFO] Producer published messages to topic 'system'
+[INFO] Consumer received messages successfully.
+
+[INFO] Broker and Zookeeper running stable.
+[INFO] Node 2 (Kafka Broker - Varun Kumar S) setup verified successfully.
