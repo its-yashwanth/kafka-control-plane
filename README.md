@@ -154,9 +154,4 @@ Services *must* be started in this order:
 
 ---
 
-## 👨‍💻 Project Contributors
 
-* *Thilak(PES2UG23CS654)*           *(Admin & Control Plane)
-* *Varun Kumar(PES2UG23CS677)*      *(Broker Node)
-* *Suhith(PES2UG23CS617)*           *(Consumer Node)
-* *Yashwanth H S(PES2UG23CS716)*    *(Producer Node)

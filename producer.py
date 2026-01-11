@@ -14,7 +14,7 @@ ADMIN_API = "http://192.168.193.220:8000"
 ADMIN_AUTH = ('admin', 'admin123')     # Admin credentials
 
 # Topic Validation Regex ---
-TOPIC_REGEX = re.compile(r"^[a-zA-Z0-9_-]+$")
+TOPIC_REGEX = re.compile(r"^[a-zA-Z0-9_-]+$")      
 
 # Shared queue between Input and Publisher threads
 message_queue = queue.Queue()
@@ -92,7 +92,7 @@ class TopicWatcher(threading.Thread):
             time.sleep(5)
 
 # --- Thread 2: Input Listener ---
-class InputListener(threading.Thread):
+class InputListener(threading.Thread ):
     def __init__(self, msg_queue):
         super().__init__(daemon=True, name="InputListener")
         self.msg_queue = msg_queue

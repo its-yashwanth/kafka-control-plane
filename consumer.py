@@ -14,7 +14,7 @@ ADMIN_AUTH = ('admin', 'admin123')
 consumer_lock = threading.Lock()
 consumer = None
 stop_consumer_event = threading.Event()
-consumer_thread = None  # <-- MUST be declared as global here
+consumer_thread = None  
 
 
 # --- Consumer Thread ---
